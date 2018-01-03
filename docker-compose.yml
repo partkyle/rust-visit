@@ -1,0 +1,14 @@
+version: '2'
+services:
+  visit:
+    build: .
+    environment:
+      - VISIT_ADDR=0.0.0.0:8080
+      - VISIT_REDIS=redis://redis/
+    depends_on:
+      - redis
+    ports:
+      - 8080
+
+  redis:
+    image: redis
