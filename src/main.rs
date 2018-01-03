@@ -1,6 +1,7 @@
 extern crate hyper;
 extern crate futures;
 extern crate redis;
+extern crate hostname;
 
 use std::env;
 
@@ -9,11 +10,14 @@ use redis::RedisResult;
 
 use futures::future::Future;
 
+use hostname::get_hostname;
+
 use hyper::header::ContentLength;
 use hyper::server::{Http, Request, Response, Service};
 
 struct HelloWorld<'a> {
-    redis_host: &'a str
+    redis_host: &'a str,
+    hostname: &'a str,
 }
 
 impl<'a> HelloWorld<'a> {
@@ -39,7 +43,7 @@ impl<'a> Service for HelloWorld<'a> {
             Ok(count) => { count }
             _ => { 0 }
         };
-        let phrase = format!("The current visit count is {}.\n", count);
+        let phrase = format!("The current visit count is {} on {}.\n", count, self.hostname);
         let response = Response::new()
                                 .with_header(ContentLength(phrase.len() as u64))
                                 .with_body(phrase);
@@ -48,6 +52,8 @@ impl<'a> Service for HelloWorld<'a> {
 }
 
 fn main() {
+    let hostname = get_hostname().unwrap();
+
     let addr = match env::var("VISIT_ADDR") {
         Ok(val) => val,
         _ => "127.0.0.1:3000".to_string()
@@ -60,7 +66,7 @@ fn main() {
 
     let addr = addr.parse().unwrap();
 
-    let server = Http::new().bind(&addr, move || Ok(HelloWorld{redis_host: &redis_host[..]})).unwrap();
+    let server = Http::new().bind(&addr, move || Ok(HelloWorld{hostname: &hostname, redis_host: &redis_host[..]})).unwrap();
     println!("running on {:?}", addr);
 
     server.run().unwrap();

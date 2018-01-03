@@ -7,3 +7,4 @@ authors = ["Kyle Partridge <kyle.partridge@sendgrid.com>"]
 redis = "*"
 hyper = "0.11"
 futures = "*"
+hostname = "^0.1"
