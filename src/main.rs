@@ -16,6 +16,15 @@ struct HelloWorld<'a> {
     redis_host: &'a str
 }
 
+impl<'a> HelloWorld<'a> {
+    fn update_count(&self) -> RedisResult<u64> {
+        let redis_client = redis::Client::open(self.redis_host).unwrap();
+        let con = redis_client.get_connection().unwrap();
+
+        con.incr("rust.visit.count", 1)
+    }
+}
+
 
 impl<'a> Service for HelloWorld<'a> {
     // boilerplate hooking up hyper's server types
@@ -26,23 +35,16 @@ impl<'a> Service for HelloWorld<'a> {
     type Future = Box<Future<Item=Self::Response, Error=Self::Error>>;
 
     fn call(&self, _req: Request) -> Self::Future {
-        let count = match update_count(self.redis_host) {
+        let count = match self.update_count() {
             Ok(count) => { count }
             _ => { 0 }
         };
-        let phrase = format!("The current visit count is {}.", count);
+        let phrase = format!("The current visit count is {}.\n", count);
         let response = Response::new()
                                 .with_header(ContentLength(phrase.len() as u64))
                                 .with_body(phrase);
         Box::new(futures::future::ok(response))
     }
-}
-
-fn update_count(server: &str) -> RedisResult<u64> {
-    let redis_client = redis::Client::open(server).unwrap();
-    let con = redis_client.get_connection().unwrap();
-
-    con.incr("rust.visit.count", 1)
 }
 
 fn main() {
