@@ -3,6 +3,10 @@ extern crate futures;
 extern crate redis;
 extern crate hostname;
 
+extern crate serde_json;
+
+#[macro_use] extern crate serde_derive;
+
 use std::env;
 
 use redis::Commands;
@@ -14,6 +18,12 @@ use hostname::get_hostname;
 
 use hyper::header::ContentLength;
 use hyper::server::{Http, Request, Response, Service};
+use hyper::{Method};
+
+#[derive(Serialize)]
+struct Healthcheck<'a> {
+    version: &'a str,
+}
 
 struct HelloWorld<'a> {
     redis_host: &'a str,
@@ -29,7 +39,6 @@ impl<'a> HelloWorld<'a> {
     }
 }
 
-
 impl<'a> Service for HelloWorld<'a> {
     // boilerplate hooking up hyper's server types
     type Request = Request;
@@ -38,18 +47,35 @@ impl<'a> Service for HelloWorld<'a> {
 
     type Future = Box<Future<Item=Self::Response, Error=Self::Error>>;
 
-    fn call(&self, _req: Request) -> Self::Future {
-        let count = match self.update_count() {
-            Ok(count) => { count }
-            _ => { 0 }
+    fn call(&self, req: Request) -> Self::Future {
+        let content = match (req.method(), req.path()) {
+            (&Method::Get, "/") => {
+                let count = match self.update_count() {
+                    Ok(count) => { count }
+                    _ => { 0 }
+                };
+                format!("The current visit count is {} on {}.\n", count, self.hostname)
+            }
+            (&Method::Get, "/healthcheck") => {
+                let healthcheck = Healthcheck{version: VERSION};
+                serde_json::to_string_pretty(&healthcheck).unwrap()
+            },
+
+            _ => {
+                let response = Response::new()
+                                            .with_status(hyper::StatusCode::NotFound);
+                return Box::new(futures::future::ok(response));
+            }
         };
-        let phrase = format!("The current visit count is {} on {}.\n", count, self.hostname);
+
         let response = Response::new()
-                                .with_header(ContentLength(phrase.len() as u64))
-                                .with_body(phrase);
+                                .with_header(ContentLength(content.len() as u64))
+                                .with_body(content);
         Box::new(futures::future::ok(response))
     }
 }
+
+const VERSION: &str = "0.1.1";
 
 fn main() {
     let hostname = get_hostname().unwrap();
