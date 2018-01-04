@@ -75,7 +75,7 @@ impl<'a> Service for HelloWorld<'a> {
     }
 }
 
-const VERSION: &str = "0.1.1";
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 fn main() {
     let hostname = get_hostname().unwrap();
