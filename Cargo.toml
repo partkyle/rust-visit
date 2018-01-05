@@ -1,6 +1,6 @@
 [package]
 name = "visit"
-version = "0.1.2"
+version = "0.2.0"
 authors = ["Kyle Partridge <kyle.partridge@sendgrid.com>"]
 
 [dependencies]
