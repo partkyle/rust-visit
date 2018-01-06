@@ -23,6 +23,7 @@ use hyper::{Method};
 #[derive(Serialize)]
 struct Healthcheck<'a> {
     version: &'a str,
+    hostname: &'a str,
 }
 
 struct HelloWorld<'a> {
@@ -57,7 +58,7 @@ impl<'a> Service for HelloWorld<'a> {
                 format!("The current visit count is {} on {}.\n", count, self.hostname)
             }
             (&Method::Get, "/healthcheck") => {
-                let healthcheck = Healthcheck{version: VERSION};
+                let healthcheck = Healthcheck{version: VERSION, hostname: self.hostname};
                 serde_json::to_string_pretty(&healthcheck).unwrap()
             },
 
