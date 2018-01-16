@@ -1,0 +1,17 @@
+sudo: required
+
+language: ruby
+
+services:
+  - docker
+
+script:
+  - docker build -t partkyle/rust-visit:$(git describe --tags | sed 's/^v//')
+
+after_success:
+  - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
+  - docker push partkyle/rust-visit:$(git describe --tags | sed 's/^v//')
+  - if [ "$TRAVIS_BRANCH" == "master" ]; then
+      docker tag partkyle/rust-visit:$(git describe --tags | sed 's/^v//') partkyle/rust-visit:latest
+      docker push partkyle/rust-visit:latest
+    fi
