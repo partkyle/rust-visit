@@ -16,7 +16,8 @@ use futures::future::Future;
 
 use hostname::get_hostname;
 
-use hyper::header::ContentLength;
+use hyper::mime::Mime;
+use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Http, Request, Response, Service};
 use hyper::{Method};
 
@@ -49,17 +50,36 @@ impl<'a> Service for HelloWorld<'a> {
     type Future = Box<Future<Item=Self::Response, Error=Self::Error>>;
 
     fn call(&self, req: Request) -> Self::Future {
-        let content = match (req.method(), req.path()) {
+        let response = match (req.method(), req.path()) {
+            (&Method::Get, "/favicon.ico") => {
+                let content = FAVICON;
+                let icon_mime: Mime = "image/x-icon".parse().unwrap();
+                let response = Response::new()
+                                         .with_header(ContentLength(content.len() as u64))
+                                         .with_header(ContentType(icon_mime))
+                                         .with_body(content);
+                response
+            }
+
             (&Method::Get, "/") => {
                 let count = match self.update_count() {
                     Ok(count) => { count }
                     _ => { 0 }
                 };
-                format!("The current visit count is {} on {}.\n", count, self.hostname)
+                let content = format!("The current visit count is {} on {}.\n", count, self.hostname);
+                let response = Response::new()
+                                        .with_header(ContentLength(content.len() as u64))
+                                        .with_body(content);
+                response
             }
+
             (&Method::Get, "/healthcheck") => {
                 let healthcheck = Healthcheck{version: VERSION, hostname: self.hostname};
-                serde_json::to_string_pretty(&healthcheck).unwrap()
+                let content = serde_json::to_string_pretty(&healthcheck).unwrap();
+                let response = Response::new()
+                                        .with_header(ContentLength(content.len() as u64))
+                                        .with_body(content);
+                response
             },
 
             _ => {
@@ -69,14 +89,13 @@ impl<'a> Service for HelloWorld<'a> {
             }
         };
 
-        let response = Response::new()
-                                .with_header(ContentLength(content.len() as u64))
-                                .with_body(content);
         Box::new(futures::future::ok(response))
     }
 }
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
+const FAVICON: &'static [u8] = include_bytes!("favicon.ico");
 
 fn main() {
     let hostname = get_hostname().unwrap();
