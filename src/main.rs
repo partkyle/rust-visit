@@ -80,7 +80,7 @@ impl<'a> Service for HelloWorld<'a> {
                                         .with_header(ContentLength(content.len() as u64))
                                         .with_body(content);
                 response
-            },
+            }
 
             _ => {
                 let response = Response::new()
