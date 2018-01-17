@@ -6,7 +6,7 @@ services:
   - docker
 
 script:
-  - docker build -t partkyle/rust-visit:$(git describe --tags | sed 's/^v//')
+  - docker build -t partkyle/rust-visit:$(git describe --tags | sed 's/^v//') .
 
 after_success:
   - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
